@@ -89,7 +89,6 @@ function fireworks_activate(pos, name)
 		texture = "firework_"..name..".png",
     })
     minetest.after(1.5, function()
-    minetest.sound_play("fireworks", {gain = 10, pos = pos2, max_hear_distance = 50})
     local gravity = -8
     pos.y = pos.y+15
 	minetest.add_particlespawner({
