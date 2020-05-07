@@ -1,5 +1,5 @@
 local colors = {
-	{"red", "Red"},
+    {"red", "Red"},
     {"orange", "Orange"},
     {"violet", "Violet"},
     {"green", "Green"},
@@ -11,9 +11,9 @@ for _,i in pairs(colors) do
 		description = i[2].." Fireworks",
 		tiles = {"firework_"..i[1]..".png"},
 		groups = {cracky=3, mesecon=2},
-        drawtype = "plantlike",
-        paramtype = "light",
-        selection_box = {
+                drawtype = "plantlike",
+                paramtype = "light",
+                selection_box = {
 			type = "fixed",
 			fixed = {-2 / 16, -0.5, -2 / 16, 2 / 16, 3 / 16, 2 / 16},
 		},
@@ -85,9 +85,9 @@ function fireworks_activate(pos, name)
 		maxsize = 8,
 		collisiondetection = false,
 		vertical = false,
-        glow = 5,
+                glow = 5,
 		texture = "firework_"..name..".png",
-	})
+    })
     minetest.after(1.5, function()
     minetest.sound_play("fireworks", {gain = 10, pos = pos2, max_hear_distance = 50})
     local gravity = -8
@@ -107,10 +107,10 @@ function fireworks_activate(pos, name)
 		maxsize = 3,
 		collisiondetection = true,
 		vertical = false,
-        glow = 5,
+                glow = 5,
 		texture = "firework_sparks_"..name..".png",
 	})
-    minetest.add_particlespawner({
+        minetest.add_particlespawner({
 		amount = 100,
 		time = 0.001,
 		minpos = pos,
@@ -125,7 +125,7 @@ function fireworks_activate(pos, name)
 		maxsize = 3,
 		collisiondetection = true,
 		vertical = false,
-        glow = 5,
+                glow = 5,
 		texture = "firework_sparks_blue.png",
 	})
     end)
