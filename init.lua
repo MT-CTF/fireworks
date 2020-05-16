@@ -69,6 +69,11 @@ minetest.register_craft({
 })
 
 function fireworks_activate(pos, name)
+    minetest.sound_play("fireworks_launch", {
+        pos = pos,
+        max_hear_distance = 40,
+        gain = 4.0
+    })
 	minetest.remove_node(pos)
 	minetest.add_particlespawner({
 		amount = 1,
@@ -89,14 +94,15 @@ function fireworks_activate(pos, name)
 		texture = "firework_"..name..".png",
 	})
 	minetest.after(1.5, function()
+		local gravity = -8
+		pos.y = pos.y + 15
+        
         minetest.sound_play("fireworks_explosion", {
             pos = pos,
             max_hear_distance = 100,
-            gain = 2.0
+            gain = 8.0
         })
         
-		local gravity = -8
-		pos.y = pos.y + 15
 		minetest.add_particlespawner({
 			amount = 150,
 			time = 0.001,
