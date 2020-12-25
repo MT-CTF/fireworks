@@ -33,7 +33,7 @@ end
 
 
 minetest.register_craft({
-	output = "fireworks:firework_orange",
+	output = "fireworks:orange",
 	recipe = {
 		{"default:paper"},
 		{"tnt:gunpowder"},
