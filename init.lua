@@ -1,76 +1,5 @@
 fireworks = {}
 
-local colors = {
-	{"red", "Red"},
-	{"orange", "Orange"},
-	{"violet", "Violet"},
-	{"green", "Green"},
-}
-
-
-for _, i in pairs(colors) do
-	local texture = "fireworks_"..i[1]..".png"
-	minetest.register_node("fireworks:"..i[1], {
-		description = i[2].." Fireworks",
-		tiles = {"fireworks_"..i[1]..".png"},
-		groups = {cracky = 3, mesecon = 2},
-		drawtype = "plantlike",
-		paramtype = "light",
-		selection_box = {
-			type = "fixed",
-			fixed = { - 2 / 16, - 0.5, - 2 / 16, 2 / 16, 3 / 16, 2 / 16},
-		},
-		on_punch = function(pos)
-			fireworks.fireworks_activate(pos, texture, i[1])
-		end,
-		mesecons = {
-			effector = {
-				action_on = function(pos)
-					fireworks.fireworks_activate(pos, texture, i[1])
-				end
-			},
-		},
-		sounds = default.node_sound_stone_defaults(),
-	})
-end
-
-
-minetest.register_craft({
-	output = "fireworks:orange",
-	recipe = {
-		{"default:paper"},
-		{"tnt:gunpowder"},
-		{"dye:orange"}
-	}
-})
-
-minetest.register_craft({
-	output = "fireworks:red",
-	recipe = {
-		{"default:paper"},
-		{"tnt:gunpowder"},
-		{"dye:red"}
-	}
-})
-
-minetest.register_craft({
-	output = "fireworks:violet",
-	recipe = {
-		{"default:paper"},
-		{"tnt:gunpowder"},
-		{"dye:violet"}
-	}
-})
-
-minetest.register_craft({
-	output = "fireworks:green",
-	recipe = {
-		{"default:paper"},
-		{"tnt:gunpowder"},
-		{"dye:green"}
-	}
-})
-
 function fireworks.explode_firework(pos, color)
 	local explosion_vel = vector.new(1, 1, 1)
 
@@ -99,6 +28,7 @@ function fireworks.explode_firework(pos, color)
 		texture = "fireworks_spark.png^[multiply:"..color,
 	})
 
+	local rand = math.random(1, 3) == 1
 	minetest.add_particlespawner({
 		amount = 100,
 		time = 0.001,
@@ -115,13 +45,13 @@ function fireworks.explode_firework(pos, color)
 		collisiondetection = false,
 		vertical = false,
 		glow = minetest.LIGHT_MAX,
-		texture = "fireworks_spark.png^[multiply:#3262ff",
+		texture = "fireworks_spark.png"..(rand and "^[multiply:yellow" or ""),
 	})
 end
 
 local F_TIME = 1.5
 local F_VEL = 1
-function fireworks.fireworks_activate(pos, texture, color, distance)
+function fireworks.activate(pos, firework_texture, color, distance)
 	distance = distance or math.random(14, 30)
 
 	minetest.sound_play("fireworks_launch", {
@@ -129,7 +59,11 @@ function fireworks.fireworks_activate(pos, texture, color, distance)
 		max_hear_distance = 40,
 		gain = 4.0
 	})
-	minetest.remove_node(pos)
+
+	if minetest.get_node(pos).name:match("firework") then
+		minetest.remove_node(pos)
+	end
+
 	minetest.add_particle({
 		pos = pos,
 		velocity = vector.new(0, F_VEL, 0),
@@ -140,9 +74,112 @@ function fireworks.fireworks_activate(pos, texture, color, distance)
 		collisiondetection = false,
 		vertical = true,
 		glow = minetest.LIGHT_MAX,
-		texture = texture,
+		texture = firework_texture,
 	})
 	pos.y = pos.y + distance
 
 	minetest.after(F_TIME, fireworks.explode_firework, pos, color)
+end
+
+local timer = false
+for name, def in pairs(ctf_teams.team) do
+	local color = def.color
+	local texture = "fireworks_firework.png^(fireworks_overlay.png^[multiply:"..color..")"
+
+	minetest.register_node("fireworks:"..name, {
+		description = HumanReadable(name).." Fireworks",
+		tiles = {texture},
+		groups = {oddly_breakable_by_hand = 2},
+		drawtype = "plantlike",
+		paramtype = "light",
+		selection_box = {
+			type = "fixed",
+			fixed = { - 2 / 16, - 0.5, - 2 / 16, 2 / 16, 3 / 16, 2 / 16},
+		},
+		on_place = function(itemstack, placer, pointed_thing, ...)
+			if placer and placer:is_player() then
+				if minetest.check_player_privs(placer, {server = true}) then
+					return minetest.item_place(itemstack, placer, pointed_thing, ...)
+				end
+			end
+		end,
+		on_use = function(itemstack, user, _pointed_thing)
+			if timer then
+				return
+			else
+				timer = true
+				minetest.after(0.2, function()
+					timer = false
+				end)
+			end
+
+			if user and user:is_player() then
+				fireworks.activate(user:get_pos():add(
+					user:get_look_dir():multiply(2.2)):add(
+					vector.new(0, user:get_properties().eye_height, 0)
+				), texture, color)
+
+				if ctf_teams.get(user) then
+					itemstack:set_count(itemstack:get_count()-1)
+
+					return itemstack
+				end
+			end
+		end,
+		on_punch = function(pos)
+			if timer then
+				return
+			else
+				timer = true
+				minetest.after(0.2, function()
+					timer = false
+				end)
+			end
+
+			fireworks.activate(pos, texture, color)
+		end,
+		sounds = default.node_sound_stone_defaults(),
+	})
+end
+
+local FIREWORKS_TREASURE = false
+
+local check_interval = 60 * 60 * 6 -- 6 hour interval
+local check_timer = check_interval -- Have it check when the server starts
+minetest.register_globalstep(function(dtime)
+	check_timer = check_timer + dtime
+
+	if check_timer >= check_interval then
+		check_timer = 0
+
+		local date = os.date("*t")
+
+		if (date.day >= 16 and date.month == 8) or
+		(date.day <= 1 and date.month == 9) then
+			FIREWORKS_TREASURE = true
+		elseif FIREWORKS_TREASURE then
+			FIREWORKS_TREASURE = false
+		end
+	end
+end)
+
+local old_func = ctf_map.treasure.treasurefy_node
+function ctf_map.treasure.treasurefy_node(inv, ...)
+	if FIREWORKS_TREASURE then
+		local tlist = {}
+
+		for k in pairs(ctf_map.current_map.teams) do
+			table.insert(tlist, k)
+		end
+
+		local item = ItemStack("fireworks:"..tlist[math.random(1, #tlist)])
+
+		if math.random() < 0.2 then
+			item:set_count(math.random(1, 6))
+
+			inv:add_item("main", item)
+		end
+	end
+
+	return old_func(inv, ...)
 end
