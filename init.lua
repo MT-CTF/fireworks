@@ -100,13 +100,6 @@ for name, def in pairs(ctf_teams.team) do
 			type = "fixed",
 			fixed = { - 2 / 16, - 0.5, - 2 / 16, 2 / 16, 3 / 16, 2 / 16},
 		},
-		on_place = function(itemstack, placer, pointed_thing, ...)
-			if placer and placer:is_player() then
-				if minetest.check_player_privs(placer, {server = true}) then
-					return minetest.item_place(itemstack, placer, pointed_thing, ...)
-				end
-			end
-		end,
 		on_use = function(itemstack, user, _pointed_thing)
 			if user and user:is_player() then
 				local pname = user:get_player_name()
