@@ -1,5 +1,9 @@
 fireworks = {}
 
+function fireworks.on_use(_user)
+	-- Intended to be overwritten by mods
+end
+
 function fireworks.explode_firework(pos, color)
 	local explosion_vel = vector.new(1, 1, 1)
 
@@ -114,6 +118,8 @@ for name, def in pairs(ctf_teams.team) do
 			end
 
 			if user and user:is_player() then
+				fireworks.on_use(user)
+
 				fireworks.activate(user:get_pos():add(
 					user:get_look_dir():multiply(2.2)):add(
 					vector.new(0, user:get_properties().eye_height, 0)
@@ -126,17 +132,21 @@ for name, def in pairs(ctf_teams.team) do
 				end
 			end
 		end,
-		on_punch = function(pos)
-			if timer then
-				return
-			else
-				timer = true
-				minetest.after(0.2, function()
-					timer = false
-				end)
-			end
+		on_punch = function(pos, _node, puncher, _pointed_thing)
+			if puncher and puncher:is_player() then
+				fireworks.on_use(puncher)
 
-			fireworks.activate(pos, texture, color)
+				if timer then
+					return
+				else
+					timer = true
+					minetest.after(0.2, function()
+						timer = false
+					end)
+				end
+
+				fireworks.activate(pos, texture, color)
+			end
 		end,
 		sounds = default.node_sound_stone_defaults(),
 	})
@@ -154,7 +164,7 @@ minetest.register_globalstep(function(dtime)
 
 		local date = os.date("*t")
 
-		if (date.day >= 16 and date.month == 8) or
+		if (date.day >= 15 and date.month == 8) or
 		(date.day <= 1 and date.month == 9) then
 			FIREWORKS_TREASURE = true
 		elseif FIREWORKS_TREASURE then
@@ -163,21 +173,24 @@ minetest.register_globalstep(function(dtime)
 	end
 end)
 
+local tlist = {}
+ctf_api.register_on_new_match(function()
+	for k in pairs(ctf_map.current_map.teams) do
+		table.insert(tlist, k)
+	end
+end)
+
 local old_func = ctf_map.treasure.treasurefy_node
 function ctf_map.treasure.treasurefy_node(inv, ...)
 	if FIREWORKS_TREASURE then
-		local tlist = {}
+		for _, name in pairs(tlist) do
+			local item = ItemStack("fireworks:"..name)
 
-		for k in pairs(ctf_map.current_map.teams) do
-			table.insert(tlist, k)
-		end
+			if math.random() < 0.5 then
+				item:set_count(math.random(1, 4))
 
-		local item = ItemStack("fireworks:"..tlist[math.random(1, #tlist)])
-
-		if math.random() < 0.2 then
-			item:set_count(math.random(1, 6))
-
-			inv:add_item("main", item)
+				inv:add_item("main", item)
+			end
 		end
 	end
 
