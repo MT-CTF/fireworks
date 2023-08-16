@@ -85,7 +85,7 @@ function fireworks.activate(pos, firework_texture, color, distance)
 	minetest.after(F_TIME, fireworks.explode_firework, pos, color)
 end
 
-local timer = false
+local timer = {}
 for name, def in pairs(ctf_teams.team) do
 	local color = def.color
 	local texture = "fireworks_firework.png^(fireworks_overlay.png^[multiply:"..color..")"
@@ -108,16 +108,18 @@ for name, def in pairs(ctf_teams.team) do
 			end
 		end,
 		on_use = function(itemstack, user, _pointed_thing)
-			if timer then
-				return
-			else
-				timer = true
-				minetest.after(0.2, function()
-					timer = false
-				end)
-			end
-
 			if user and user:is_player() then
+				local pname = user:get_player_name()
+
+				if timer[pname] then
+					return
+				else
+					timer[pname] = true
+					minetest.after(0.5, function()
+						timer[pname] = nil
+					end)
+				end
+
 				fireworks.on_use(user)
 
 				fireworks.activate(user:get_pos():add(
@@ -134,16 +136,18 @@ for name, def in pairs(ctf_teams.team) do
 		end,
 		on_punch = function(pos, _node, puncher, _pointed_thing)
 			if puncher and puncher:is_player() then
-				fireworks.on_use(puncher)
+				local pname = puncher:get_player_name()
 
-				if timer then
+				if timer[pname] then
 					return
 				else
-					timer = true
-					minetest.after(0.2, function()
-						timer = false
+					timer[pname] = true
+					minetest.after(0.4, function()
+						timer[pname] = nil
 					end)
 				end
+
+				fireworks.on_use(puncher)
 
 				fireworks.activate(pos, texture, color)
 			end
@@ -164,7 +168,7 @@ minetest.register_globalstep(function(dtime)
 
 		local date = os.date("*t")
 
-		if (date.day >= 15 and date.month == 8) or
+		if (date.day >= 16 and date.month == 8) or
 		(date.day <= 1 and date.month == 9) then
 			FIREWORKS_TREASURE = true
 		elseif FIREWORKS_TREASURE then
