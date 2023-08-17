@@ -172,6 +172,8 @@ end)
 
 local tlist = {}
 ctf_api.register_on_new_match(function()
+	tlist = {}
+
 	for k in pairs(ctf_map.current_map.teams) do
 		table.insert(tlist, k)
 	end
@@ -183,8 +185,8 @@ function ctf_map.treasure.treasurefy_node(inv, ...)
 		for _, name in pairs(tlist) do
 			local item = ItemStack("fireworks:"..name)
 
-			if math.random() < 0.5 then
-				item:set_count(math.random(1, 4))
+			if math.random() < 0.6 then
+				item:set_count(math.random(1, 9))
 
 				inv:add_item("main", item)
 			end
